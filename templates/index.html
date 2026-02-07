@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Plate Detection & Pollution Lookup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f0f12;
+      --bg-secondary: #1a1a1f;
+      --bg-card: #232328;
+      --accent: #22d3ee;
+      --accent-dim: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --border: #3f3f46;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    header h1 {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+      border-color: rgba(34, 211, 238, 0.3);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent);
+    }
+
+    .card-title::before {
+      content: '';
+      width: 4px;
+      height: 1.25rem;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
+      border-radius: 2px;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(34, 211, 238, 0.03);
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(34, 211, 238, 0.08);
+    }
+
+    .upload-zone input {
+      display: none;
+    }
+
+    .upload-zone .icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+      opacity: 0.7;
+    }
+
+    .upload-zone p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .upload-zone p strong {
+      color: var(--text);
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-muted);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .result-image {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .result-image.visible {
+      display: block;
+    }
+
+    .result-label {
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      margin-top: 0.75rem;
+      font-weight: 500;
+      display: none;
+    }
+
+    .result-label.visible {
+      display: block;
+    }
+
+    .result-label.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .result-label.info {
+      background: rgba(34, 211, 238, 0.2);
+      color: var(--accent);
+    }
+
+    .pollution-result {
+      display: none;
+      margin-top: 1rem;
+    }
+
+    .pollution-result.visible {
+      display: block;
+    }
+
+    .pollution-result .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+
+    .pollution-result .stat:last-child {
+      border-bottom: none;
+    }
+
+    .pollution-result .stat span:first-child {
+      color: var(--text-muted);
+    }
+
+    .pollution-result .stat span:last-child {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    .classification {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 1rem;
+      text-align: center;
+    }
+
+    .classification.high {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+
+    .classification.moderate {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--warning);
+    }
+
+    .classification.low {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--success);
+    }
+
+    .error-msg {
+      padding: 0.75rem 1rem;
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .error-msg.visible {
+      display: block;
+    }
+
+    .loader {
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .demo-plates {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .demo-plates code {
+      background: var(--bg-secondary);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Vehicle Plate Detection & Pollution Lookup</h1>
+      <p>Upload an image to detect license plate region • Enter plate number for pollution data</p>
+    </header>
+
+    <div class="grid">
+      <!-- Plate Detection Card -->
+      <div class="card">
+        <h2 class="card-title">Plate Detection</h2>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="imageInput" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp">
+          <div class="icon">📷</div>
+          <p><strong>Click or drag</strong> an image here</p>
+          <p>PNG, JPG, JPEG, WEBP, BMP</p>
+        </div>
+        <img id="resultImage" class="result-image" alt="Detection result">
+        <div id="resultLabel" class="result-label"></div>
+        <div id="detectError" class="error-msg"></div>
+      </div>
+
+      <!-- Pollution Lookup Card -->
+      <div class="card">
+        <h2 class="card-title">Pollution Lookup</h2>
+        <form id="pollutionForm">
+          <div class="form-group">
+            <label for="plateNumber">License Plate Number</label>
+            <input type="text" id="plateNumber" name="plateNumber" placeholder="e.g. MH12AB1234" autocomplete="off">
+            <p class="demo-plates">Demo: MH12AB1234, DL9CG4545, KA05AB6789</p>
+          </div>
+          <button type="submit" class="btn btn-primary" id="lookupBtn">
+            <span id="lookupBtnText">Lookup Pollution Data</span>
+          </button>
+        </form>
+        <div id="pollutionResult" class="pollution-result">
+          <div class="stat"><span>CO₂ Emission</span><span id="co2"></span></div>
+          <div class="stat"><span>NOx Emission</span><span id="nox"></span></div>
+          <div class="stat"><span>PM2.5 Level</span><span id="pm25"></span></div>
+          <div id="classification" class="classification"></div>
+        </div>
+        <div id="pollutionError" class="error-msg"></div>
+      </div>
+    </div>
+
+    <footer>
+      Vehicle License Plate Detection &amp; RTO Pollution Data Lookup
+    </footer>
+  </div>
+
+  <script>
+    // Plate Detection
+    const uploadZone = document.getElementById('uploadZone');
+    const imageInput = document.getElementById('imageInput');
+    const resultImage = document.getElementById('resultImage');
+    const resultLabel = document.getElementById('resultLabel');
+    const detectError = document.getElementById('detectError');
+
+    function showDetectError(msg) {
+      detectError.textContent = msg;
+      detectError.classList.add('visible');
+      resultLabel.classList.remove('visible');
+    }
+
+    function hideDetectError() {
+      detectError.classList.remove('visible');
+    }
+
+    uploadZone.addEventListener('click', () => imageInput.click());
+
+    uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadZone.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', () => {
+      uploadZone.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) {
+        processImage(file);
+      } else {
+        showDetectError('Please drop an image file (PNG, JPG, WEBP, BMP)');
+      }
+    });
+
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) processImage(file);
+      e.target.value = '';
+    });
+
+    async function processImage(file) {
+      hideDetectError();
+      resultImage.classList.remove('visible');
+      resultLabel.classList.remove('visible');
+      resultImage.src = '';
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const res = await fetch('/api/detect-plate', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          showDetectError(data.error || 'Detection failed');
+          return;
+        }
+
+        resultImage.src = data.image;
+        resultImage.classList.add('visible');
+
+        resultLabel.textContent = data.plate_detected
+          ? '✓ License plate region detected'
+          : 'No plate detected in this image';
+        resultLabel.className = 'result-label visible ' + (data.plate_detected ? 'success' : 'info');
+      } catch (err) {
+        showDetectError('Network error. Is the server running?');
+      }
+    }
+
+    // Pollution Lookup
+    const pollutionForm = document.getElementById('pollutionForm');
+    const plateNumberInput = document.getElementById('plateNumber');
+    const lookupBtn = document.getElementById('lookupBtn');
+    const lookupBtnText = document.getElementById('lookupBtnText');
+    const pollutionResult = document.getElementById('pollutionResult');
+    const pollutionError = document.getElementById('pollutionError');
+
+    function showPollutionError(msg) {
+      pollutionError.textContent = msg;
+      pollutionError.classList.add('visible');
+      pollutionResult.classList.remove('visible');
+    }
+
+    function hidePollutionError() {
+      pollutionError.classList.remove('visible');
+    }
+
+    pollutionForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const plate = plateNumberInput.value.trim();
+
+      if (!plate) {
+        showPollutionError('Please enter a license plate number');
+        return;
+      }
+
+      hidePollutionError();
+      pollutionResult.classList.remove('visible');
+      lookupBtn.disabled = true;
+      lookupBtnText.innerHTML = '<span class="loader"></span> Looking up...';
+
+      try {
+        const encoded = encodeURIComponent(plate);
+        const res = await fetch(`/api/pollution/${encoded}`);
+        const data = await res.json();
+
+        if (!data.success) {
+          showPollutionError(data.error || 'Lookup failed');
+          return;
+        }
+
+        const v = data.vehicle;
+        document.getElementById('co2').textContent = v.co2_emission + ' g/km';
+        document.getElementById('nox').textContent = v.nox_emission + ' g/km';
+        document.getElementById('pm25').textContent = v.pm25_level + ' µg/m³';
+
+        const cls = document.getElementById('classification');
+        cls.textContent = v.classification;
+        cls.className = 'classification visible ' +
+          (v.classification.includes('High') ? 'high' :
+           v.classification.includes('Moderate') ? 'moderate' : 'low');
+
+        pollutionResult.classList.add('visible');
+      } catch (err) {
+        showPollutionError('Network error. Is the server running?');
+      } finally {
+        lookupBtn.disabled = false;
+        lookupBtnText.textContent = 'Lookup Pollution Data';
+      }
+    });
+  </script>
+</body>
+</html>
