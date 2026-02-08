@@ -26,3 +26,5 @@ Then open **http://localhost:5000** in your browser.
 - `MH12AB1234` - High pollution
 - `DL9CG4545` - Moderate pollution  
 - `KA05AB6789` - Low pollution
+
+<img width="1562" height="705" alt="image" src="https://github.com/user-attachments/assets/7bc462b6-8cd3-4292-8ec4-a8f6e30c88f8" />
