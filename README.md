@@ -1,4 +1,6 @@
 # Vehicle Plate Detection & Pollution Lookup
+<img width="1381" height="861" alt="image" src="https://github.com/user-attachments/assets/c83630a9-2e1d-4032-a8c7-ca63a641a0c6" />
+
 
 A web app that detects license plate regions in images and looks up vehicle pollution data by plate number.
 
@@ -28,3 +30,4 @@ Then open **http://localhost:5000** in your browser.
 - `KA05AB6789` - Low pollution
 
 <img width="1562" height="705" alt="image" src="https://github.com/user-attachments/assets/7bc462b6-8cd3-4292-8ec4-a8f6e30c88f8" />
+
