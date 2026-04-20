@@ -61,6 +61,7 @@ source venv/bin/activate
 pip install opencv-python
 pip install numpy
 pip install flask
+pip install waitress
 pip install easyocr
 
 
@@ -68,6 +69,8 @@ pip install easyocr
 
 ▶️ How to Run the Project
 python backend.py
+
+The app now prefers Waitress (WSGI server). If installed, it runs with Waitress automatically.
 
 
 If Flask is used, open your browser and go to:

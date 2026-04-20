@@ -108,4 +108,11 @@ if __name__ == "__main__":
 
     selected_port = _find_free_port(5000)
     print(f"Starting backend on port {selected_port}")
-    app.run(debug=True, use_reloader=False, host="0.0.0.0", port=selected_port)
+    try:
+        from waitress import serve
+        print("Using Waitress WSGI server")
+        serve(app, host="0.0.0.0", port=selected_port)
+    except ImportError:
+        print("Waitress not installed; using Flask dev server")
+        print("Install with: pip install waitress")
+        app.run(debug=True, use_reloader=False, host="0.0.0.0", port=selected_port)
