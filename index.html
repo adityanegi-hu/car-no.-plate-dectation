@@ -66,6 +66,12 @@
   </div>
 
   <script>
+    // Resolve backend host when this page is opened via static server (e.g. :5500).
+    var backendOrigin = (window.location.port === '5000')
+      ? window.location.origin
+      : window.location.protocol + '//' + window.location.hostname + ':5000';
+    function apiUrl(path) { return backendOrigin + path; }
+
     // Camera
     var openBtn = document.getElementById('openBtn');
     var closeBtn = document.getElementById('closeBtn');
@@ -75,14 +81,14 @@
 
     openBtn.onclick = function() {
       camErr.classList.remove('show');
-      cameraImg.src = '/video_feed';
+      cameraImg.src = apiUrl('/video_feed');
       cameraBox.classList.add('show');
       openBtn.style.display = 'none';
       closeBtn.style.display = 'inline-block';
     };
 
     closeBtn.onclick = function() {
-      fetch('/api/camera/stop', { method: 'POST' }).catch(function(){});
+      fetch(apiUrl('/api/camera/stop'), { method: 'POST' }).catch(function(){});
       cameraImg.src = '';
       cameraBox.classList.remove('show');
       openBtn.style.display = 'inline-block';
@@ -106,7 +112,7 @@
       }
       pollErr.classList.remove('show');
       result.classList.remove('show');
-      fetch('/api/pollution/' + encodeURIComponent(p))
+      fetch(apiUrl('/api/pollution/' + encodeURIComponent(p)))
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data.ok) {
