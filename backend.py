@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, jsonify, Response
 
 from car import fetch_rto_data, pollution_score, detect_plate_region
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.')
 stop_camera = False
 
 
