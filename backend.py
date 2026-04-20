@@ -1,9 +1,12 @@
 import cv2
+import os
+import socket
 from flask import Flask, render_template, request, jsonify, Response
 
 from car import fetch_rto_data, pollution_score, detect_plate_region
 
-app = Flask(__name__, template_folder='.')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, template_folder=BASE_DIR)
 stop_camera = False
 
 
@@ -34,6 +37,11 @@ def add_cors_headers(resp):
 @app.route("/")
 def home():
     return render_template("index.html")
+
+
+@app.route("/api/health")
+def health():
+    return jsonify({"ok": True})
 
 
 def camera_frames():
@@ -90,4 +98,14 @@ def pollution(plate):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, use_reloader=False, host="0.0.0.0", port=5000)
+    def _find_free_port(start_port=5000, max_tries=20):
+        for port in range(start_port, start_port + max_tries):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                if sock.connect_ex(("127.0.0.1", port)) != 0:
+                    return port
+        return start_port
+
+    selected_port = _find_free_port(5000)
+    print(f"Starting backend on port {selected_port}")
+    app.run(debug=True, use_reloader=False, host="0.0.0.0", port=selected_port)
