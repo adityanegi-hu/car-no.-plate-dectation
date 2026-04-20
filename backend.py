@@ -7,6 +7,22 @@ app = Flask(__name__, template_folder='.')
 stop_camera = False
 
 
+def _open_camera():
+    """Try common camera backends/indexes for Windows webcams."""
+    attempts = [
+        (0, cv2.CAP_DSHOW),
+        (0, None),
+        (1, cv2.CAP_DSHOW),
+        (1, None),
+    ]
+    for index, backend in attempts:
+        cap = cv2.VideoCapture(index, backend) if backend is not None else cv2.VideoCapture(index)
+        if cap.isOpened():
+            return cap
+        cap.release()
+    return None
+
+
 @app.after_request
 def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -23,8 +39,8 @@ def home():
 def camera_frames():
     global stop_camera
     stop_camera = False
-    cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
+    cap = _open_camera()
+    if cap is None:
         return
     try:
         while not stop_camera:
@@ -74,4 +90,4 @@ def pollution(plate):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, use_reloader=False, host="0.0.0.0", port=5000)
