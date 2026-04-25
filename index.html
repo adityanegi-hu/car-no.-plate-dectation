@@ -72,27 +72,54 @@
     function apiUrl(path) { return backendOrigin + path; }
     function detectBackendOrigin() {
       if (backendOriginPromise) return backendOriginPromise;
-      var host = window.location.hostname;
-      var proto = window.location.protocol;
-      var candidates = [window.location.port, '5000', '5001', '5002', '5003', '5004', '5005']
+      var isFilePage = window.location.protocol === 'file:';
+      var hosts = isFilePage
+        ? ['127.0.0.1', 'localhost']
+        : [window.location.hostname || '127.0.0.1'];
+      var proto = isFilePage ? 'http:' : window.location.protocol;
+      var ports = [window.location.port, '5000', '5001', '5002', '5003', '5004', '5005']
         .filter(function(p, i, arr) { return p && arr.indexOf(p) === i; });
       backendOriginPromise = (async function() {
-        for (var i = 0; i < candidates.length; i++) {
-          var port = candidates[i];
-          var origin = proto + '//' + host + ':' + port;
-          try {
-            var r = await fetch(origin + '/api/health', { method: 'GET' });
-            if (r.ok) {
-              backendOrigin = origin;
-              return backendOrigin;
-            }
-          } catch (e) {}
+        for (var h = 0; h < hosts.length; h++) {
+          for (var i = 0; i < ports.length; i++) {
+            var port = ports[i];
+            var origin = proto + '//' + hosts[h] + ':' + port;
+            try {
+              var r = await fetch(origin + '/api/health', { method: 'GET' });
+              if (r.ok) {
+                backendOrigin = origin;
+                return backendOrigin;
+              }
+            } catch (e) {}
+          }
         }
-        // Fallback for same-origin backend setups.
-        backendOrigin = window.location.origin;
-        return backendOrigin;
+        // Same-origin fallback only applies when served over http/https.
+        if (!isFilePage) {
+          backendOrigin = window.location.origin;
+          return backendOrigin;
+        }
+        throw new Error('Backend not reachable');
       })();
       return backendOriginPromise;
+    }
+
+    async function ensureBackend() {
+      try {
+        await detectBackendOrigin();
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function showCamError(msg) {
+      camErr.textContent = msg;
+      camErr.classList.add('show');
+    }
+
+    function showPollError(msg) {
+      pollErr.textContent = msg;
+      pollErr.classList.add('show');
     }
 
     // Camera
@@ -104,7 +131,11 @@
 
     openBtn.onclick = async function() {
       camErr.classList.remove('show');
-      await detectBackendOrigin();
+      var ok = await ensureBackend();
+      if (!ok) {
+        showCamError('Backend not reachable. Start python backend.py and retry.');
+        return;
+      }
       cameraImg.src = apiUrl('/video_feed');
       cameraBox.classList.add('show');
       openBtn.style.display = 'none';
@@ -112,7 +143,7 @@
     };
 
     closeBtn.onclick = async function() {
-      await detectBackendOrigin();
+      await ensureBackend();
       fetch(apiUrl('/api/camera/stop'), { method: 'POST' }).catch(function(){});
       cameraImg.src = '';
       cameraBox.classList.remove('show');
@@ -137,9 +168,16 @@
       }
       pollErr.classList.remove('show');
       result.classList.remove('show');
-      await detectBackendOrigin();
+      var ok = await ensureBackend();
+      if (!ok) {
+        showPollError('Backend not reachable. Start python backend.py and retry.');
+        return;
+      }
       fetch(apiUrl('/api/pollution/' + encodeURIComponent(p)))
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+          if (!r.ok) return r.json();
+          return r.json();
+        })
         .then(function(data) {
           if (!data.ok) {
             pollErr.textContent = data.error || 'Error';
