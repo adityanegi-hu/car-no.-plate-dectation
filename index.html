@@ -65,13 +65,26 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script>
+    // Optional override for hosted frontend (e.g., Vercel).
+    // Set in config.js, for example:
+    // window.BACKEND_URL = 'https://your-backend.onrender.com';
+    window.BACKEND_URL = window.BACKEND_URL || '';
+
     // Detect backend host/port when app is opened from static server (e.g. :5500).
     var backendOrigin = '';
     var backendOriginPromise = null;
+    var cameraEnabled = true;
     function apiUrl(path) { return backendOrigin + path; }
     function detectBackendOrigin() {
       if (backendOriginPromise) return backendOriginPromise;
+      var configuredBackend = (window.BACKEND_URL || '').trim();
+      if (configuredBackend) {
+        backendOrigin = configuredBackend.replace(/\/+$/, '');
+        backendOriginPromise = Promise.resolve(backendOrigin);
+        return backendOriginPromise;
+      }
       var isFilePage = window.location.protocol === 'file:';
       var hosts = isFilePage
         ? ['127.0.0.1', 'localhost']
@@ -122,6 +135,25 @@
       pollErr.classList.add('show');
     }
 
+    function evaluateCameraSupport() {
+      var host = '';
+      try {
+        host = new URL(backendOrigin).hostname;
+      } catch (e) {}
+      var localHosts = ['127.0.0.1', 'localhost'];
+      cameraEnabled = localHosts.indexOf(host) >= 0;
+      if (!cameraEnabled) {
+        openBtn.disabled = true;
+        openBtn.style.opacity = '0.6';
+        openBtn.style.cursor = 'not-allowed';
+        showCamError('Camera works only when backend runs on your local machine.');
+      } else {
+        openBtn.disabled = false;
+        openBtn.style.opacity = '';
+        openBtn.style.cursor = '';
+      }
+    }
+
     // Camera
     var openBtn = document.getElementById('openBtn');
     var closeBtn = document.getElementById('closeBtn');
@@ -136,6 +168,8 @@
         showCamError('Backend not reachable. Start python backend.py and retry.');
         return;
       }
+      evaluateCameraSupport();
+      if (!cameraEnabled) return;
       cameraImg.src = apiUrl('/video_feed');
       cameraBox.classList.add('show');
       openBtn.style.display = 'none';
@@ -198,6 +232,11 @@
           pollErr.classList.add('show');
         });
     };
+
+    // Resolve backend once at startup to provide early feedback in hosted environments.
+    ensureBackend().then(function(ok) {
+      if (ok) evaluateCameraSupport();
+    });
   </script>
 </body>
 </html>

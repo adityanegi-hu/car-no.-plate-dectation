@@ -80,6 +80,35 @@ http://127.0.0.1:5000/
 
 Upload a vehicle image and the system will detect and display the number plate.
 
+🌐 Deploy Frontend on Vercel + Backend on Render
+
+This project is split deployment friendly:
+- `index.html` -> Vercel (static hosting)
+- `backend.py` -> Render (Python web service)
+
+1) Deploy backend (Render)
+- Push repo to GitHub.
+- Create a new Render Web Service from this repo.
+- Render detects `render.yaml` and uses:
+  - build: `pip install -r requirements.txt`
+  - start: `python backend.py`
+- After deploy, copy backend URL (example: `https://your-backend.onrender.com`).
+
+2) Configure frontend backend URL
+- In `config.js`, set:
+- `window.BACKEND_URL = 'https://your-backend.onrender.com';`
+- Keep it empty (`''`) for local auto-detect.
+
+3) Deploy frontend (Vercel)
+- Import same repo in Vercel.
+- Framework preset: Other.
+- Output directory: project root.
+- Deploy.
+
+4) Notes
+- Pollution lookup works on Vercel + Render.
+- Camera streaming requires local webcam access, so it is disabled automatically when backend is not local.
+
 🧪 Sample Output
 
 Input Image → 🚗

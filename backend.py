@@ -106,7 +106,8 @@ if __name__ == "__main__":
                     return port
         return start_port
 
-    selected_port = _find_free_port(5000)
+    env_port = os.environ.get("PORT")
+    selected_port = int(env_port) if env_port else _find_free_port(5000)
     print(f"Starting backend on port {selected_port}")
     try:
         from waitress import serve
