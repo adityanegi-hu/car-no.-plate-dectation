@@ -81,7 +81,9 @@ if __name__ == "__main__":
         ok, frame = cap.read()
         if not ok:
             break
-        out = detect_plate_region(frame) or frame
+        out = detect_plate_region(frame)
+        if out is None:
+            out = frame
         cv2.imshow("Plate", out)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
