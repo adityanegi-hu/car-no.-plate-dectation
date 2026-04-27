@@ -35,7 +35,6 @@
 <body>
   <h1>Car Plate Detection & Pollution</h1>
   <p class="sub">Open camera for plate detection • Enter plate for pollution data</p>
-
   <div class="row">
     <div class="card">
       <h2>Plate Detection</h2>
@@ -47,7 +46,6 @@
       <p class="hint">Plates show in green when detected.</p>
       <p class="err" id="camErr"></p>
     </div>
-
     <div class="card">
       <h2>Pollution Lookup</h2>
       <form id="form">
@@ -64,19 +62,18 @@
       <p class="err" id="pollErr"></p>
     </div>
   </div>
-
   <script src="config.js"></script>
   <script>
-    // Optional override for hosted frontend (e.g., Vercel).
-    // Set in config.js, for example:
-    // window.BACKEND_URL = 'https://your-backend.onrender.com';
+    // Optional override for hosted deployments (e.g., separate Render backend).
+    // Set in config.js: window.BACKEND_URL = 'https://your-backend.onrender.com';
     window.BACKEND_URL = window.BACKEND_URL || '';
 
-    // Detect backend host/port when app is opened from static server (e.g. :5500).
+    // Determine backend origin: use configured URL or same origin.
     var backendOrigin = '';
     var backendOriginPromise = null;
-    var cameraEnabled = true;
+
     function apiUrl(path) { return backendOrigin + path; }
+
     function detectBackendOrigin() {
       if (backendOriginPromise) return backendOriginPromise;
       var configuredBackend = (window.BACKEND_URL || '').trim();
@@ -85,34 +82,9 @@
         backendOriginPromise = Promise.resolve(backendOrigin);
         return backendOriginPromise;
       }
-      var isFilePage = window.location.protocol === 'file:';
-      var hosts = isFilePage
-        ? ['127.0.0.1', 'localhost']
-        : [window.location.hostname || '127.0.0.1'];
-      var proto = isFilePage ? 'http:' : window.location.protocol;
-      var ports = [window.location.port, '5000', '5001', '5002', '5003', '5004', '5005']
-        .filter(function(p, i, arr) { return p && arr.indexOf(p) === i; });
-      backendOriginPromise = (async function() {
-        for (var h = 0; h < hosts.length; h++) {
-          for (var i = 0; i < ports.length; i++) {
-            var port = ports[i];
-            var origin = proto + '//' + hosts[h] + ':' + port;
-            try {
-              var r = await fetch(origin + '/api/health', { method: 'GET' });
-              if (r.ok) {
-                backendOrigin = origin;
-                return backendOrigin;
-              }
-            } catch (e) {}
-          }
-        }
-        // Same-origin fallback only applies when served over http/https.
-        if (!isFilePage) {
-          backendOrigin = window.location.origin;
-          return backendOrigin;
-        }
-        throw new Error('Backend not reachable');
-      })();
+      // Same-origin: frontend and backend are on the same Vercel deployment.
+      backendOrigin = window.location.origin;
+      backendOriginPromise = Promise.resolve(backendOrigin);
       return backendOriginPromise;
     }
 
@@ -135,25 +107,6 @@
       pollErr.classList.add('show');
     }
 
-    function evaluateCameraSupport() {
-      var host = '';
-      try {
-        host = new URL(backendOrigin).hostname;
-      } catch (e) {}
-      var localHosts = ['127.0.0.1', 'localhost'];
-      cameraEnabled = localHosts.indexOf(host) >= 0;
-      if (!cameraEnabled) {
-        openBtn.disabled = true;
-        openBtn.style.opacity = '0.6';
-        openBtn.style.cursor = 'not-allowed';
-        showCamError('Camera works only when backend runs on your local machine.');
-      } else {
-        openBtn.disabled = false;
-        openBtn.style.opacity = '';
-        openBtn.style.cursor = '';
-      }
-    }
-
     // Camera
     var openBtn = document.getElementById('openBtn');
     var closeBtn = document.getElementById('closeBtn');
@@ -165,11 +118,9 @@
       camErr.classList.remove('show');
       var ok = await ensureBackend();
       if (!ok) {
-        showCamError('Backend not reachable. Start python backend.py and retry.');
+        showCamError('Backend not reachable. Make sure the server is running.');
         return;
       }
-      evaluateCameraSupport();
-      if (!cameraEnabled) return;
       cameraImg.src = apiUrl('/video_feed');
       cameraBox.classList.add('show');
       openBtn.style.display = 'none';
@@ -204,7 +155,7 @@
       result.classList.remove('show');
       var ok = await ensureBackend();
       if (!ok) {
-        showPollError('Backend not reachable. Start python backend.py and retry.');
+        showPollError('Backend not reachable. Make sure the server is running.');
         return;
       }
       fetch(apiUrl('/api/pollution/' + encodeURIComponent(p)))
@@ -233,9 +184,9 @@
         });
     };
 
-    // Resolve backend once at startup to provide early feedback in hosted environments.
+    // Resolve backend once at startup.
     ensureBackend().then(function(ok) {
-      if (ok) evaluateCameraSupport();
+      // Backend resolved, ready for use.
     });
   </script>
 </body>
