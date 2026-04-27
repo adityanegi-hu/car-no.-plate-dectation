@@ -15,7 +15,8 @@
     .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
     .btn.primary { background: #22d3ee; color: #111; }
     .btn.secondary { background: #333; color: #22d3ee; border: 1px solid #444; }
-    .btn:hover { opacity: 0.9; }
+    .btn:hover:not(:disabled) { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     #cameraBox { display: none; margin-top: 15px; }
     #cameraBox.show { display: block; }
     #cameraBox img { width: 100%; max-height: 320px; border-radius: 8px; background: #111; }
@@ -30,6 +31,7 @@
     .err { color: #f66; margin-top: 10px; font-size: 0.9rem; display: none; }
     .err.show { display: block; }
     .hint { color: #666; font-size: 0.85rem; margin-top: 5px; }
+    .info { color: #88f; font-size: 0.85rem; margin-top: 8px; padding: 8px; background: #1a2a3a; border-left: 3px solid #22d3ee; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -45,6 +47,7 @@
       </div>
       <p class="hint">Plates show in green when detected.</p>
       <p class="err" id="camErr"></p>
+      <p class="info" id="cameraInfo"></p>
     </div>
     <div class="card">
       <h2>Pollution Lookup</h2>
@@ -71,6 +74,7 @@
     // Determine backend origin: use configured URL or same origin.
     var backendOrigin = '';
     var backendOriginPromise = null;
+    var isVercelDeployment = window.location.hostname.includes('vercel.app') || window.location.hostname === 'adityanegi-pu.software';
 
     function apiUrl(path) { return backendOrigin + path; }
 
@@ -113,12 +117,30 @@
     var cameraBox = document.getElementById('cameraBox');
     var cameraImg = document.getElementById('cameraImg');
     var camErr = document.getElementById('camErr');
+    var cameraInfo = document.getElementById('cameraInfo');
+
+    // Check if camera is supported (not on Vercel serverless)
+    function evaluateCameraSupport() {
+      if (isVercelDeployment) {
+        openBtn.disabled = true;
+        openBtn.style.opacity = '0.5';
+        openBtn.style.cursor = 'not-allowed';
+        cameraInfo.innerHTML = '<strong>⚠️ Camera Limited:</strong> Live camera requires running Flask locally. To test: <code>python backend.py</code> then visit <code>http://localhost:5000</code>';
+        return false;
+      }
+      return true;
+    }
 
     openBtn.onclick = async function() {
       camErr.classList.remove('show');
+      
+      if (!evaluateCameraSupport()) {
+        return;
+      }
+      
       var ok = await ensureBackend();
       if (!ok) {
-        showCamError('Backend not reachable. Make sure the server is running.');
+        showCamError('Backend not reachable. Start Flask backend locally with: python backend.py');
         return;
       }
       cameraImg.src = apiUrl('/video_feed');
@@ -184,9 +206,9 @@
         });
     };
 
-    // Resolve backend once at startup.
-    ensureBackend().then(function(ok) {
-      // Backend resolved, ready for use.
+    // Evaluate camera support on startup.
+    window.addEventListener('load', function() {
+      evaluateCameraSupport();
     });
   </script>
 </body>
