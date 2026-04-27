@@ -1,12 +1,15 @@
 {
   "version": 2,
-  "cleanUrls": true,
   "builds": [
+    { "src": "backend.py", "use": "@vercel/python" },
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "config.js", "use": "@vercel/static" }
+    { "src": "config.js", "use": "@vercel/static" },
+    { "src": "vehicles.csv", "use": "@vercel/static" },
+    { "src": "car.py", "use": "@vercel/static" }
   ],
   "routes": [
-    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "backend.py" },
+    { "src": "/video_feed", "dest": "backend.py" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
