@@ -2,13 +2,11 @@ import cv2
 import os
 import socket
 from flask import Flask, render_template, request, jsonify, Response
-
 from car import fetch_rto_data, pollution_score, detect_plate_region
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, template_folder=BASE_DIR)
+app = Flask(__name__, template_folder=BASE_DIR, static_folder=BASE_DIR)
 stop_camera = False
-
 
 def _open_camera():
     """Try common camera backends/indexes for Windows webcams."""
@@ -25,7 +23,6 @@ def _open_camera():
         cap.release()
     return None
 
-
 @app.after_request
 def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -33,16 +30,13 @@ def add_cors_headers(resp):
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
     return resp
 
-
 @app.route("/")
 def home():
     return render_template("index.html")
 
-
 @app.route("/api/health")
 def health():
     return jsonify({"ok": True})
-
 
 def camera_frames():
     global stop_camera
@@ -63,18 +57,15 @@ def camera_frames():
     finally:
         cap.release()
 
-
 @app.route("/video_feed")
 def video_feed():
     return Response(camera_frames(), mimetype="multipart/x-mixed-replace; boundary=frame")
-
 
 @app.route("/api/camera/stop", methods=["POST"])
 def camera_stop():
     global stop_camera
     stop_camera = True
     return jsonify({"ok": True})
-
 
 @app.route("/api/pollution/<plate>")
 def pollution(plate):
@@ -95,7 +86,6 @@ def pollution(plate):
             "classification": level,
         },
     })
-
 
 if __name__ == "__main__":
     def _find_free_port(start_port=5000, max_tries=20):
